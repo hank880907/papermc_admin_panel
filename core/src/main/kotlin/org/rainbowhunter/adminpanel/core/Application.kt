@@ -7,17 +7,25 @@ import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
+import org.rainbowhunter.adminpanel.core.agent.AgentRegistry
+import org.rainbowhunter.adminpanel.core.agent.AgentRepository
+import org.rainbowhunter.adminpanel.core.agent.agentModule
 import org.rainbowhunter.adminpanel.protocol.ProtocolJson
 import java.io.File
+import java.time.Duration
 
 data class CoreConfig(
     val dbPath: String,
     val agentRegistrationToken: String,
+    val heartbeatTimeout: Duration,
 )
 
 fun loadCoreConfig(config: ApplicationConfig): CoreConfig = CoreConfig(
     dbPath = config.property("adminpanel.db.path").getString(),
     agentRegistrationToken = config.property("adminpanel.agents.registrationToken").getString(),
+    heartbeatTimeout = Duration.ofSeconds(
+        config.propertyOrNull("adminpanel.agents.heartbeatTimeoutSeconds")?.getString()?.toLong() ?: 30L,
+    ),
 )
 
 @Suppress("unused")
@@ -27,7 +35,12 @@ fun Application.module() {
     val dataSource = buildDataSource("jdbc:sqlite:${config.dbPath}")
     runMigrations(dataSource)
     connectExposed(dataSource)
+
+    val registry = AgentRegistry()
+    val repository = AgentRepository()
+
     coreModule()
+    agentModule(registry, repository, config.agentRegistrationToken, config.heartbeatTimeout)
 }
 
 fun Application.coreModule(staticBasePackage: String = "web") {

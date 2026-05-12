@@ -127,12 +127,12 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Implement `/agent` WebSocket endpoint with `Authorization: Bearer <token>` on upgrade
-- [ ] Persist agent rows in `agents` on first `Hello`
-- [ ] In-memory `AgentRegistry` mapping `agentId → live connection`
-- [ ] Coroutine event bus: agents push events; Core subscribers receive
-- [ ] Command dispatch: send `CoreEnvelope` to agent, await matching `CommandResult` by correlation id
-- [ ] Heartbeat/timeout — agent marked offline after N missed heartbeats
+- [x] Implement `/agent` WebSocket endpoint with `Authorization: Bearer <token>` on upgrade
+- [x] Persist agent rows in `agents` on first `Hello`
+- [x] In-memory `AgentRegistry` mapping `agentId → live connection`
+- [x] Coroutine event bus: agents push events; Core subscribers receive
+- [x] Command dispatch: send `CoreEnvelope` to agent, await matching `CommandResult` by correlation id
+- [x] Heartbeat/timeout — agent marked offline after N missed heartbeats
 
 ### Success criteria
 
