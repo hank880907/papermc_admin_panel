@@ -43,12 +43,12 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Remove `src/Main.java` and `papermc_admin_panel.iml`
-- [ ] Create `settings.gradle.kts` declaring modules: `shared`, `core`, `agent-paper`, `agent-velocity`
-- [ ] Create root `build.gradle.kts` with Kotlin plugin, Java 25 toolchain, common repositories
-- [ ] Create `gradle/libs.versions.toml` (Kotlin, Ktor, Exposed, Flyway, kotlinx.serialization, Paper API, Velocity API,
+- [x] Remove `src/Main.java` and `papermc_admin_panel.iml`
+- [x] Create `settings.gradle.kts` declaring modules: `shared`, `core`, `agent-paper`, `agent-velocity`
+- [x] Create root `build.gradle.kts` with Kotlin plugin, Java 25 toolchain, common repositories
+- [x] Create `gradle/libs.versions.toml` (Kotlin, Ktor, Exposed, Flyway, kotlinx.serialization, Paper API, Velocity API,
   etc.)
-- [ ] Add `.gitignore` covering Gradle build dirs, IDE files, `node_modules/`, `frontend/dist/`,
+- [x] Add `.gitignore` covering Gradle build dirs, IDE files, `node_modules/`, `frontend/dist/`,
   `core/src/main/resources/web/`
 
 ### Success criteria
@@ -68,13 +68,13 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Scaffold `shared/` with `kotlinx.serialization`
-- [ ] Define sealed `AgentEnvelope` (Agent → Core): `Hello`, `Heartbeat`, `ConsoleLine`, `PlayerJoin`, `PlayerQuit`,
+- [x] Scaffold `shared/` with `kotlinx.serialization`
+- [x] Define sealed `AgentEnvelope` (Agent → Core): `Hello`, `Heartbeat`, `ConsoleLine`, `PlayerJoin`, `PlayerQuit`,
   `CommandResult`
-- [ ] Define sealed `CoreEnvelope` (Core → Agent): `RunCommand`, `KickPlayer`, `BanPlayer`, `OpPlayer`, `SetGamemode`,
+- [x] Define sealed `CoreEnvelope` (Core → Agent): `RunCommand`, `KickPlayer`, `BanPlayer`, `OpPlayer`, `SetGamemode`,
   `Teleport`
-- [ ] Define DTOs: `ServerInfo`, `Player`, `AgentMeta`
-- [ ] Keep dependencies minimal — only `kotlinx.serialization`. Avoid pulling Ktor/Exposed into shared (classloader risk
+- [x] Define DTOs: `ServerInfo`, `Player`, `AgentMeta`
+- [x] Keep dependencies minimal — only `kotlinx.serialization`. Avoid pulling Ktor/Exposed into shared (classloader risk
   in Paper plugin).
 
 ### Success criteria
