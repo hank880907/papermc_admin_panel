@@ -13,6 +13,12 @@ sealed class CoreEnvelope {
     ) : CoreEnvelope()
 
     @Serializable
+    @SerialName("ListPlayers")
+    data class ListPlayers(
+        val correlationId: String,
+    ) : CoreEnvelope()
+
+    @Serializable
     @SerialName("KickPlayer")
     data class KickPlayer(
         val correlationId: String,

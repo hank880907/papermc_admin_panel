@@ -158,8 +158,8 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Auth: Ktor Sessions + Argon2id password hashing
-- [ ] Registration flow:
+- [x] Auth: Ktor Sessions + Argon2id password hashing
+- [x] Registration flow:
     - Admin grants access by creating a user record (`POST /api/users` — MC username + UUID, no password). Bootstrap
       special case: when zero users exist, any op running `/ap register` is auto-granted as the first admin.
     - Player runs `/ap register` in-game → Paper agent calls `POST /api/auth/register/issue` (authenticated by agent
@@ -168,12 +168,12 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
     - `GET /api/auth/register/{token}` validates and returns the username for display.
     - `POST /api/auth/register/complete` with `{ token, password }` → Argon2id-hash, store, consume token. User can now
       log in.
-- [ ] `POST /api/auth/login` (username + password), `POST /api/auth/logout`, `GET /api/auth/status`
-- [ ] `GET /api/servers` — registered agents + live status
-- [ ] `GET /api/servers/{id}/players` — proxied to agent
-- [ ] `POST /api/servers/{id}/players/{uuid}/{kick|ban|op|gamemode|teleport}`
-- [ ] `WS /ws/console/{serverId}` — live console + send command
-- [ ] Audit-log write on every mutation
+- [x] `POST /api/auth/login` (username + password), `POST /api/auth/logout`, `GET /api/auth/status`
+- [x] `GET /api/servers` — registered agents + live status
+- [x] `GET /api/servers/{id}/players` — proxied to agent
+- [x] `POST /api/servers/{id}/players/{uuid}/{kick|ban|op|gamemode|teleport}`
+- [x] `WS /ws/console/{serverId}` — live console + send command
+- [x] Audit-log write on every mutation
 
 ### Success criteria
 

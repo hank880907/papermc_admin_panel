@@ -26,7 +26,7 @@ class AgentRegistry(
     private val clock: () -> Instant = Instant::now,
 ) {
     private val connections = ConcurrentHashMap<String, AgentConnection>()
-    private val pending = ConcurrentHashMap<Pair<String, String>, CompletableDeferred<AgentEnvelope.CommandResult>>()
+    private val pending = ConcurrentHashMap<Pair<String, String>, CompletableDeferred<AgentEnvelope>>()
 
     private val _events = MutableSharedFlow<Pair<String, AgentEnvelope>>(extraBufferCapacity = 64)
     val events: SharedFlow<Pair<String, AgentEnvelope>> get() = _events.asSharedFlow()
@@ -49,8 +49,13 @@ class AgentRegistry(
 
     suspend fun publish(serverId: String, envelope: AgentEnvelope) {
         connections[serverId]?.lastSeenAt = clock()
-        if (envelope is AgentEnvelope.CommandResult) {
-            pending.remove(serverId to envelope.correlationId)?.complete(envelope)
+        val correlationId = when (envelope) {
+            is AgentEnvelope.CommandResult -> envelope.correlationId
+            is AgentEnvelope.PlayerListResult -> envelope.correlationId
+            else -> null
+        }
+        if (correlationId != null) {
+            pending.remove(serverId to correlationId)?.complete(envelope)
             return
         }
         _events.emit(serverId to envelope)
@@ -62,10 +67,31 @@ class AgentRegistry(
         correlationId: String,
         timeout: Duration,
     ): AgentEnvelope.CommandResult {
+        val raw = dispatchRaw(serverId, command, correlationId, timeout)
+        return raw as? AgentEnvelope.CommandResult
+            ?: throw IllegalStateException("Expected CommandResult, got ${raw::class.simpleName}")
+    }
+
+    suspend fun dispatchListPlayers(
+        serverId: String,
+        correlationId: String,
+        timeout: Duration,
+    ): AgentEnvelope.PlayerListResult {
+        val raw = dispatchRaw(serverId, CoreEnvelope.ListPlayers(correlationId), correlationId, timeout)
+        return raw as? AgentEnvelope.PlayerListResult
+            ?: throw IllegalStateException("Expected PlayerListResult, got ${raw::class.simpleName}")
+    }
+
+    private suspend fun dispatchRaw(
+        serverId: String,
+        command: CoreEnvelope,
+        correlationId: String,
+        timeout: Duration,
+    ): AgentEnvelope {
         val session = connections[serverId]?.session
             ?: throw IllegalStateException("agent $serverId not connected")
         val key = serverId to correlationId
-        val deferred = CompletableDeferred<AgentEnvelope.CommandResult>()
+        val deferred = CompletableDeferred<AgentEnvelope>()
         pending[key] = deferred
         try {
             session.send(command)

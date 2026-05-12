@@ -44,4 +44,11 @@ sealed class AgentEnvelope {
         val success: Boolean,
         val output: String,
     ) : AgentEnvelope()
+
+    @Serializable
+    @SerialName("PlayerListResult")
+    data class PlayerListResult(
+        val correlationId: String,
+        val players: List<Player>,
+    ) : AgentEnvelope()
 }

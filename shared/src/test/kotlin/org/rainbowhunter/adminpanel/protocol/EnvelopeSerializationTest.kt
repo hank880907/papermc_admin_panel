@@ -81,11 +81,16 @@ class EnvelopeSerializationTest {
                 success = true,
                 output = "There are 0 of a max of 20 players online.",
             ),
+            AgentEnvelope.PlayerListResult(
+                correlationId = "c-2",
+                players = listOf(Player("uuid-1", "Player1"), Player("uuid-2", "Player2")),
+            ),
         )
 
         @JvmStatic
         fun coreEnvelopes(): List<CoreEnvelope> = listOf(
             CoreEnvelope.RunCommand("c-1", "list"),
+            CoreEnvelope.ListPlayers("c-99"),
             CoreEnvelope.KickPlayer("c-2", "uuid-1", "Bye"),
             CoreEnvelope.BanPlayer("c-3", "uuid-1", "Banned"),
             CoreEnvelope.OpPlayer("c-4", "uuid-1", true),

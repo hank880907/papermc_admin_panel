@@ -1,11 +1,8 @@
 package org.rainbowhunter.adminpanel.core.agent
 
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.install
-import io.ktor.server.response.respond
-import io.ktor.server.routing.route
+import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
@@ -21,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.rainbowhunter.adminpanel.core.auth.AGENT_AUTH_NAME
 import org.rainbowhunter.adminpanel.protocol.AgentEnvelope
 import org.rainbowhunter.adminpanel.protocol.CoreEnvelope
 import org.rainbowhunter.adminpanel.protocol.ProtocolJson
@@ -46,7 +44,6 @@ class WsAgentSession(
 fun Application.agentModule(
     registry: AgentRegistry,
     repository: AgentRepository,
-    token: String,
     heartbeatTimeout: Duration,
     json: Json = ProtocolJson,
 ) {
@@ -61,16 +58,8 @@ fun Application.agentModule(
     }
 
     routing {
-        route("/agent") {
-            intercept(ApplicationCallPipeline.Plugins) {
-                val provided = context.request.headers["Authorization"]
-                    ?.removePrefix("Bearer ")?.trim()
-                if (provided != token) {
-                    context.respond(HttpStatusCode.Unauthorized)
-                    finish()
-                }
-            }
-            webSocket {
+        authenticate(AGENT_AUTH_NAME) {
+            webSocket("/agent") {
                 handleAgentSession(registry, repository, json)
             }
         }

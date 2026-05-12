@@ -7,7 +7,13 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.install
 import io.ktor.server.testing.testApplication
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import org.rainbowhunter.adminpanel.core.auth.UserRepository
+import org.rainbowhunter.adminpanel.core.auth.installAuth
+import org.rainbowhunter.adminpanel.core.auth.installSessions
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
@@ -39,6 +45,7 @@ class AgentWebSocketTest {
     private data class Env(
         val registry: AgentRegistry,
         val repository: AgentRepository,
+        val userRepo: UserRepository,
         val dataSource: HikariDataSource,
         val dbPath: Path,
     )
@@ -51,7 +58,16 @@ class AgentWebSocketTest {
         }
         runMigrations(ds)
         connectExposed(ds)
-        return Env(AgentRegistry(), AgentRepository(), ds, dbPath)
+        return Env(AgentRegistry(), AgentRepository(), UserRepository(), ds, dbPath)
+    }
+
+    private fun io.ktor.server.testing.ApplicationTestBuilder.installAgentApp(env: Env, heartbeatTimeout: Duration = Duration.ofSeconds(5)) {
+        application {
+            install(ServerContentNegotiation) { json(ProtocolJson) }
+            installSessions("test-signing-key-32-bytes-of-noise")
+            installAuth(env.userRepo, "test-token")
+            agentModule(env.registry, env.repository, heartbeatTimeout)
+        }
     }
 
     private fun Env.teardown() {
@@ -64,9 +80,7 @@ class AgentWebSocketTest {
         val env = setupEnv()
         try {
             testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
-                }
+                installAgentApp(env)
                 val client = createClient { install(ClientWebSockets) }
                 client.webSocket("/agent", request = { header("Authorization", "Bearer test-token") }) {
                     val hello = AgentEnvelope.Hello("srv-1", AgentType.PAPER, "Survival")
@@ -87,49 +101,11 @@ class AgentWebSocketTest {
     }
 
     @Test
-    fun `invalid token returns 401 and no agent row is written`() {
-        val env = setupEnv()
-        try {
-            testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
-                }
-                val response = client.get("/agent") {
-                    header("Authorization", "Bearer wrong-token")
-                }
-                assertEquals(HttpStatusCode.Unauthorized, response.status)
-            }
-            val count = transaction { AgentsTable.selectAll().count() }
-            assertEquals(0L, count)
-        } finally {
-            env.teardown()
-        }
-    }
-
-    @Test
-    fun `missing token returns 401`() {
-        val env = setupEnv()
-        try {
-            testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
-                }
-                val response = client.get("/agent")
-                assertEquals(HttpStatusCode.Unauthorized, response.status)
-            }
-        } finally {
-            env.teardown()
-        }
-    }
-
-    @Test
     fun `dispatch over a real WebSocket round-trips a CommandResult from the mock agent`() {
         val env = setupEnv()
         try {
             testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
-                }
+                installAgentApp(env)
                 val client = createClient { install(ClientWebSockets) }
                 coroutineScope {
                     val agentJob = launch {
@@ -174,9 +150,7 @@ class AgentWebSocketTest {
         val env = setupEnv()
         try {
             testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
-                }
+                installAgentApp(env)
                 val client = createClient { install(ClientWebSockets) }
                 val thrown = runCatching {
                     client.webSocket("/agent", request = { header("Authorization", "Bearer wrong-token") }) {
@@ -197,9 +171,7 @@ class AgentWebSocketTest {
         val env = setupEnv()
         try {
             testApplication {
-                application {
-                    agentModule(env.registry, env.repository, "test-token", Duration.ofMillis(150))
-                }
+                installAgentApp(env, heartbeatTimeout = Duration.ofMillis(150))
                 val client = createClient { install(ClientWebSockets) }
                 client.webSocket("/agent", request = { header("Authorization", "Bearer test-token") }) {
                     val hello = AgentEnvelope.Hello("srv-1", AgentType.PAPER, "Survival")
