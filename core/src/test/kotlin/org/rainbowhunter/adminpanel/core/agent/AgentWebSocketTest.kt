@@ -8,8 +8,14 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import io.ktor.websocket.send
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
@@ -111,6 +117,76 @@ class AgentWebSocketTest {
                 val response = client.get("/agent")
                 assertEquals(HttpStatusCode.Unauthorized, response.status)
             }
+        } finally {
+            env.teardown()
+        }
+    }
+
+    @Test
+    fun `dispatch over a real WebSocket round-trips a CommandResult from the mock agent`() {
+        val env = setupEnv()
+        try {
+            testApplication {
+                application {
+                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
+                }
+                val client = createClient { install(ClientWebSockets) }
+                coroutineScope {
+                    val agentJob = launch {
+                        client.webSocket("/agent", request = { header("Authorization", "Bearer test-token") }) {
+                            send(ProtocolJson.encodeToString<AgentEnvelope>(
+                                AgentEnvelope.Hello("srv-disp", AgentType.PAPER, "Survival"),
+                            ))
+                            for (frame in incoming) {
+                                if (frame !is Frame.Text) continue
+                                val cmd = ProtocolJson.decodeFromString<org.rainbowhunter.adminpanel.protocol.CoreEnvelope>(frame.readText())
+                                if (cmd is org.rainbowhunter.adminpanel.protocol.CoreEnvelope.RunCommand) {
+                                    send(ProtocolJson.encodeToString<AgentEnvelope>(
+                                        AgentEnvelope.CommandResult(cmd.correlationId, true, "echoed: ${cmd.command}"),
+                                    ))
+                                    break
+                                }
+                            }
+                        }
+                    }
+                    withTimeout(2000) {
+                        while (!env.registry.isOnline("srv-disp")) delay(20)
+                    }
+                    val result = env.registry.dispatch(
+                        serverId = "srv-disp",
+                        command = org.rainbowhunter.adminpanel.protocol.CoreEnvelope.RunCommand("cid-99", "list"),
+                        correlationId = "cid-99",
+                        timeout = Duration.ofSeconds(2),
+                    )
+                    assertEquals("cid-99", result.correlationId)
+                    assertEquals(true, result.success)
+                    assertEquals("echoed: list", result.output)
+                    agentJob.cancelAndJoin()
+                }
+            }
+        } finally {
+            env.teardown()
+        }
+    }
+
+    @Test
+    fun `WS upgrade with invalid token is rejected`() {
+        val env = setupEnv()
+        try {
+            testApplication {
+                application {
+                    agentModule(env.registry, env.repository, "test-token", Duration.ofSeconds(5))
+                }
+                val client = createClient { install(ClientWebSockets) }
+                val thrown = runCatching {
+                    client.webSocket("/agent", request = { header("Authorization", "Bearer wrong-token") }) {
+                        // unreachable
+                    }
+                }.exceptionOrNull()
+                assertNotNull(thrown, "expected WS upgrade to fail with bad token")
+            }
+            val count = transaction { AgentsTable.selectAll().count() }
+            assertEquals(0L, count)
         } finally {
             env.teardown()
         }

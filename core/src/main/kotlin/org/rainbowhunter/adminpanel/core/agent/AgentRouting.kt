@@ -82,7 +82,7 @@ private suspend fun DefaultWebSocketSession.handleAgentSession(
     repository: AgentRepository,
     json: Json,
 ) {
-    var serverId: String? = null
+    var conn: AgentConnection? = null
     try {
         for (frame in incoming) {
             if (frame !is Frame.Text) continue
@@ -90,7 +90,7 @@ private suspend fun DefaultWebSocketSession.handleAgentSession(
             val envelope = try {
                 json.decodeFromString<AgentEnvelope>(text)
             } catch (e: SerializationException) {
-                log.warn("Invalid envelope from ${serverId ?: "<pre-Hello>"}: ${e.message}")
+                log.warn("Invalid envelope from ${conn?.serverId ?: "<pre-Hello>"}: ${e.message}")
                 continue
             }
 
@@ -98,17 +98,16 @@ private suspend fun DefaultWebSocketSession.handleAgentSession(
                 is AgentEnvelope.Hello -> {
                     val now = Instant.now()
                     repository.upsertOnHello(envelope.serverId, envelope.agentType, envelope.displayName, now)
-                    registry.register(envelope.serverId, WsAgentSession(this, json))
-                    serverId = envelope.serverId
+                    conn = registry.register(envelope.serverId, WsAgentSession(this, json))
                 }
                 else -> {
-                    val sid = serverId ?: continue
-                    repository.touch(sid, Instant.now())
-                    registry.publish(sid, envelope)
+                    val current = conn ?: continue
+                    repository.touch(current.serverId, Instant.now())
+                    registry.publish(current.serverId, envelope)
                 }
             }
         }
     } finally {
-        serverId?.let { registry.unregister(it) }
+        conn?.let { registry.unregister(it) }
     }
 }

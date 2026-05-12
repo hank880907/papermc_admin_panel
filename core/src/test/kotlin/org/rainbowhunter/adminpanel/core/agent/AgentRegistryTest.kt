@@ -94,6 +94,43 @@ class AgentRegistryTest {
     }
 
     @Test
+    fun `unregister of a stale connection does not remove a newer registration for the same serverId`() {
+        val registry = AgentRegistry()
+        val oldConn = registry.register("srv-1", CapturingSession())
+        val newConn = registry.register("srv-1", CapturingSession())
+        assertTrue(registry.isOnline("srv-1"))
+
+        registry.unregister(oldConn)
+
+        assertTrue(registry.isOnline("srv-1"), "newer connection must survive stale unregister")
+        assertTrue(oldConn !== newConn)
+    }
+
+    @Test
+    fun `dispatch is isolated per agent — same correlationId from a different agent does not complete it`() = runBlocking {
+        val registry = AgentRegistry()
+        registry.register("srv-A", CapturingSession())
+        registry.register("srv-B", CapturingSession())
+
+        val pendingA = async {
+            registry.dispatch(
+                serverId = "srv-A",
+                command = CoreEnvelope.RunCommand("dup", "from A"),
+                correlationId = "dup",
+                timeout = Duration.ofSeconds(2),
+            )
+        }
+        yield()
+        registry.publish("srv-B", AgentEnvelope.CommandResult("dup", true, "from B"))
+        yield()
+        assertFalse(pendingA.isCompleted, "A's dispatch must not be completed by B's reply")
+
+        registry.publish("srv-A", AgentEnvelope.CommandResult("dup", true, "from A's agent"))
+        val result = pendingA.await()
+        assertEquals("from A's agent", result.output)
+    }
+
+    @Test
     fun `publish updates lastSeenAt on the registered connection`() = runBlocking {
         var now = Instant.parse("2026-01-01T00:00:00Z")
         val registry = AgentRegistry(clock = { now })

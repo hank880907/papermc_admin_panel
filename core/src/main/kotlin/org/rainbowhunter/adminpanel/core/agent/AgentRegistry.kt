@@ -26,17 +26,19 @@ class AgentRegistry(
     private val clock: () -> Instant = Instant::now,
 ) {
     private val connections = ConcurrentHashMap<String, AgentConnection>()
-    private val pending = ConcurrentHashMap<String, CompletableDeferred<AgentEnvelope.CommandResult>>()
+    private val pending = ConcurrentHashMap<Pair<String, String>, CompletableDeferred<AgentEnvelope.CommandResult>>()
 
     private val _events = MutableSharedFlow<Pair<String, AgentEnvelope>>(extraBufferCapacity = 64)
     val events: SharedFlow<Pair<String, AgentEnvelope>> get() = _events.asSharedFlow()
 
-    fun register(serverId: String, session: AgentSession) {
-        connections[serverId] = AgentConnection(serverId, session, clock())
+    fun register(serverId: String, session: AgentSession): AgentConnection {
+        val conn = AgentConnection(serverId, session, clock())
+        connections[serverId] = conn
+        return conn
     }
 
-    fun unregister(serverId: String) {
-        connections.remove(serverId)
+    fun unregister(connection: AgentConnection) {
+        connections.remove(connection.serverId, connection)
     }
 
     fun isOnline(serverId: String): Boolean = connections.containsKey(serverId)
@@ -48,7 +50,7 @@ class AgentRegistry(
     suspend fun publish(serverId: String, envelope: AgentEnvelope) {
         connections[serverId]?.lastSeenAt = clock()
         if (envelope is AgentEnvelope.CommandResult) {
-            pending.remove(envelope.correlationId)?.complete(envelope)
+            pending.remove(serverId to envelope.correlationId)?.complete(envelope)
             return
         }
         _events.emit(serverId to envelope)
@@ -62,13 +64,14 @@ class AgentRegistry(
     ): AgentEnvelope.CommandResult {
         val session = connections[serverId]?.session
             ?: throw IllegalStateException("agent $serverId not connected")
+        val key = serverId to correlationId
         val deferred = CompletableDeferred<AgentEnvelope.CommandResult>()
-        pending[correlationId] = deferred
+        pending[key] = deferred
         try {
             session.send(command)
             return withTimeout(timeout.toMillis()) { deferred.await() }
         } finally {
-            pending.remove(correlationId)
+            pending.remove(key)
         }
     }
 
@@ -76,10 +79,11 @@ class AgentRegistry(
         val now = clock()
         val stale = connections.values.filter { Duration.between(it.lastSeenAt, now) > timeout }
         for (conn in stale) {
-            connections.remove(conn.serverId)
-            try {
-                conn.session.close()
-            } catch (_: Exception) {
+            if (connections.remove(conn.serverId, conn)) {
+                try {
+                    conn.session.close()
+                } catch (_: Exception) {
+                }
             }
         }
     }
