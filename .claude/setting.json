@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradle *)",
+      "Bash(java *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(find *)"
+    ]
+  }
+}
