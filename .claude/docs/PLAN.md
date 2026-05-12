@@ -290,22 +290,37 @@ unsupported-op unit test plus serialization round-trips cover the parts that don
 
 ## Phase 7 — Frontend
 
+Phase 7 is staged because the SPA spans eight feature areas and each is a separate reviewable surface.
+
 ### Steps
 
-- [ ] Scaffold `frontend/` via `npm create vite@latest -- --template react-ts`
-- [ ] Install Tailwind CSS, configure `tailwind.config.ts`
-- [ ] Install shadcn/ui CLI; add components: button, input, table, dialog, dropdown-menu, toast, tabs
-- [ ] Install TanStack Query, TanStack Router, Zustand
-- [ ] App shell: sidebar with server list, main content area, dark mode toggle
-- [ ] Auth pages:
-    - `/register/:token` — validates token via API, displays username, password form, posts to register/complete
-    - `/login` — username + password
-    - First-run hint: if `GET /api/auth/status` reports zero users, login screen shows instructions to have an op run
-      `/ap register` in-game
-    - Admin user-list page (read-only view of who has access; granting happens via `/ap grant` in-game)
-- [ ] Server registry dashboard — TanStack Query for list, WS subscription for status changes
-- [ ] Live console view — WS subscription, virtualized scrollback, command input box
-- [ ] Player ops table — players across servers, row actions for kick/ban/op/gamemode/teleport, confirm dialogs
+**Stage 1 — scaffold + tooling (this stage):**
+- [x] Scaffold `frontend/` via `npm create vite@latest -- --template react-ts` (React 19, Vite 8, TypeScript 6)
+- [x] Install Tailwind CSS v4 (CSS-first; no `tailwind.config.ts` — themed via `@theme` in `index.css`)
+- [x] Install shadcn/ui CLI; add components: button, input, table, dialog, dropdown-menu, sonner (toast),
+  tabs, card, label, badge, separator
+- [x] Install TanStack Query, TanStack Router (file-based via `@tanstack/router-plugin` + `@tanstack/router-cli`),
+  Zustand
+- [x] App shell: sidebar (Servers / Console / Players placeholder links), main content area, dark mode toggle
+  (next-themes, system default), placeholder pages for each route
+- [x] Vite dev proxy for `/api` and `/ws` → `localhost:8080`
+- [x] Vitest + Testing Library + jsdom configured; smoke test for `ApiError`
+
+**Stage 2 — Auth pages (next):**
+- [ ] `/register/:token` — validates token via API, displays username, password form, posts to register/complete
+- [ ] `/login` — username + password
+- [ ] First-run hint: if `GET /api/auth/status` reports zero users, login screen shows instructions to have an op run
+  `/ap register` in-game
+- [ ] Admin user-list page (read-only view of who has access; granting happens via `/ap grant` in-game)
+
+**Stage 3 — Server registry dashboard:**
+- [ ] TanStack Query for list, WS subscription for status changes
+
+**Stage 4 — Live console view:**
+- [ ] WS subscription, virtualized scrollback, command input box
+
+**Stage 5 — Player ops table:**
+- [ ] Players across servers, row actions for kick/ban/op/gamemode/teleport, confirm dialogs
 
 ### Success criteria
 
