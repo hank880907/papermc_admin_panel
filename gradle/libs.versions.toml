@@ -9,8 +9,10 @@ flyway = "12.6.0"
 sqliteJdbc = "3.49.0.0"
 argon2 = "2.11"
 logback = "1.5.16"
-paperApi = "26.1.2-R0.1-SNAPSHOT"
+paperApi = "26.1.2.build.63-stable"
 velocityApi = "3.4.0-SNAPSHOT"
+snakeyaml = "2.3"
+log4j = "2.24.3"
 junitJupiter = "5.11.4"
 junitPlatform = "1.11.4"
 shadow = "8.3.5"
@@ -46,6 +48,9 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paperApi" }
 velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "velocityApi" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junitJupiter" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junitJupiter" }

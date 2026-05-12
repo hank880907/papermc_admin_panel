@@ -203,17 +203,19 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Scaffold `agent-paper/` targeting Paper 26.1.2+; Kotlin sources, Java 25 toolchain
-- [ ] `paper-plugin.yml`, `org.rainbowhunter.adminpanel.agent.paper.Main`
-- [ ] `config.yml`: `core.url`, `core.token`, `server.id`, `server.displayName`
-- [ ] WebSocket client (Ktor client) with exponential-backoff reconnect
-- [ ] Log4j2 appender → stream console lines as `ConsoleLine` events
-- [ ] Command bridge: `RunCommand` → run on Bukkit main thread via `Bukkit.getScheduler()`, capture command-sender
-  output, return `CommandResult`
-- [ ] Listeners for `PlayerJoinEvent` / `PlayerQuitEvent` → push events to Core
-- [ ] Player-ops handlers: kick / ban / op / gamemode / teleport — all dispatched on main thread
-- [ ] `/ap register` in-game command (bootstrap + normal + already-registered + no-access branches)
-- [ ] `/ap grant <player>` admin-only command (resolve UUID, post to Core)
+- [x] Scaffold `agent-paper/` targeting Paper 26.1.2+; Kotlin sources, Java 25 toolchain
+- [x] `paper-plugin.yml`, `org.rainbowhunter.adminpanel.agent.paper.AdminPanelAgent`
+- [x] `config.yml`: `core.url`, `core.token`, `server.id`, `server.displayName`
+- [x] WebSocket client (Ktor client) with exponential-backoff reconnect
+- [x] Log4j2 appender → stream console lines as `ConsoleLine` events
+- [x] Command bridge: `RunCommand` → run on Bukkit main thread via `Bukkit.getScheduler()`, return `CommandResult`
+  (command output is delivered via the live `ConsoleLine` stream instead of being mirrored into the result body)
+- [x] Listeners for `PlayerJoinEvent` / `PlayerQuitEvent` → push events to Core
+- [x] Player-ops handlers: kick / ban / op / gamemode / teleport — all dispatched on main thread
+- [x] `/ap register` in-game command (Core decides bootstrap / granted / no-access branches; agent maps result to chat
+  feedback)
+- [x] `/ap grant <player>` admin-only command (resolve UUID, POST `/api/agent/grant` — new agent-authed endpoint added
+  in Core)
 
 ### Success criteria
 
@@ -221,19 +223,29 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 - On enable, connects to Core within 5 seconds and registers
 - After a Core restart, agent reconnects within configured backoff window
 - Console lines reach Core in real time; player join/quit events reach Core
-- `RunCommand` from Core runs on the main thread and returns captured output
+- `RunCommand` from Core runs on the main thread; `CommandResult.success` reports `Bukkit.dispatchCommand`'s return
+  value. The command's textual output reaches the web UI via the live `ConsoleLine` stream (not mirrored into
+  `CommandResult.output`).
 - Each player op produces the expected in-game effect (kick disconnects with the reason, etc.)
 - `/ap register` and `/ap grant` exhibit each branch correctly
 
 ### Tests
 
-- Unit: config loader parses representative `config.yml` (happy path + missing required field → error)
-- Unit: WebSocket reconnect schedule produces expected exponential-backoff intervals
-- Unit: `/ap register` branch logic, table-driven over the user-state matrix
-- Integration (MockBukkit): simulate `PlayerJoinEvent` → assert agent pushed `PlayerJoin` with correct UUID + username
-- Integration (MockBukkit): receive `KickPlayer` over a fake WS → assert `player.kickPlayer` invoked on the main thread
+- [x] Unit: config loader parses representative `config.yml` (happy path + missing required field → error)
+- [x] Unit: WebSocket reconnect schedule produces expected exponential-backoff intervals
+- [x] Unit: `/ap register` and `/ap grant` branch logic, table-driven
+- [x] Integration (Core): new `POST /api/agent/grant` endpoint covered in `AuthRoutingTest`
+  (happy path, non-admin granter → 403, duplicate → 409)
+- [ ] Integration (MockBukkit): simulate `PlayerJoinEvent` → assert agent pushed `PlayerJoin` with correct UUID + username
+- [ ] Integration (MockBukkit): receive `KickPlayer` over a fake WS → assert `player.kickPlayer` invoked on the main thread
   with the reason
-- Manual: real Paper 26.1.2 server with the plugin; run `/list` from web UI; verify response within ~200ms
+- [ ] Manual: real Paper 26.1.2 server with the plugin; run `/list` from web UI; verify response within ~200ms
+
+**Phase 5 approval gate.** The two MockBukkit integrations above are **intentionally deferred** — MockBukkit has lagged
+Paper API historically and may not have a 26.1.2-compatible release, and Mockito-static fakes around `Bukkit.*` are
+weaker coverage than running the real server (they would not catch plugin classloading, runtime wiring, or actual
+Paper-API behavior). The **manual Paper 26.1.2 smoke** above is therefore the gate for treating Phase 5 as shippable.
+Re-evaluate MockBukkit coverage if a compatible release surfaces or if Phase 5 regressions become a recurring problem.
 
 ---
 

@@ -18,6 +18,11 @@ import org.rainbowhunter.adminpanel.core.audit.AuditLogRepository
     val username: String,
     val isAdmin: Boolean,
 )
+@Serializable data class GrantViaAgentRequest(
+    val granterMcUuid: String,
+    val mcUuid: String,
+    val username: String,
+)
 
 fun Route.adminRoutes(
     userRepo: UserRepository,
@@ -40,6 +45,24 @@ fun Route.adminRoutes(
                 auditLog.write(principal.user.id, "user.grant", "user:${user.id}", null)
                 call.respond(GrantUserResponse(user.id, user.mcUuid, user.username, user.isAdmin))
             }
+        }
+    }
+
+    authenticate(AGENT_AUTH_NAME) {
+        post("/api/agent/grant") {
+            val req = call.receive<GrantViaAgentRequest>()
+            val granter = userRepo.findByMcUuid(req.granterMcUuid)
+            if (granter == null || !granter.isAdmin) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("granter not admin"))
+                return@post
+            }
+            if (userRepo.findByMcUuid(req.mcUuid) != null) {
+                call.respond(HttpStatusCode.Conflict, ErrorResponse("already granted"))
+                return@post
+            }
+            val user = userRepo.grant(req.mcUuid, req.username, isAdmin = false)
+            auditLog.write(granter.id, "user.grant", "user:${user.id}", null)
+            call.respond(GrantUserResponse(user.id, user.mcUuid, user.username, user.isAdmin))
         }
     }
 }

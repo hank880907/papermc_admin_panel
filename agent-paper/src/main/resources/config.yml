@@ -1,0 +1,18 @@
+core:
+  # Base URL of the Admin Panel Core, including scheme (http/https) and port.
+  url: 'http://localhost:8080'
+  # Shared registration token from Core's application.conf.
+  token: 'change-me'
+
+server:
+  # Unique stable identifier for this server. Cannot change after first connect.
+  id: 'survival'
+  # Human-readable name shown in the UI.
+  displayName: 'Survival'
+
+reconnect:
+  initialDelaySeconds: 1
+  maxDelaySeconds: 60
+
+heartbeat:
+  intervalSeconds: 10

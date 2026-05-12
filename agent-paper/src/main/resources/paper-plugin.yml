@@ -1,0 +1,18 @@
+name: AdminPanel
+version: '0.1.0'
+main: org.rainbowhunter.adminpanel.agent.paper.AdminPanelAgent
+api-version: '1.21'
+description: 'Admin Panel agent: bridges this server to the Admin Panel Core.'
+authors: ['Hank']
+load: STARTUP
+commands:
+  ap:
+    description: 'Admin Panel commands.'
+    usage: '/ap <register|grant>'
+permissions:
+  adminpanel.register:
+    description: 'Allows running /ap register.'
+    default: true
+  adminpanel.grant:
+    description: 'Allows running /ap grant.'
+    default: op

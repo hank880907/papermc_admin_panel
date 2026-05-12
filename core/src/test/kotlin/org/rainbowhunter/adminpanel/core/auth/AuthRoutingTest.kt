@@ -210,6 +210,47 @@ class AuthRoutingTest {
     }
 
     @Test
+    fun `agent grant route requires the granter to be an admin`() = testApplication {
+        installTestApp()
+        userRepo.grant("uuid-non-admin", "NonAdmin", isAdmin = false)
+        val response = createClient {}.post("/api/agent/grant") {
+            header(HttpHeaders.Authorization, "Bearer $agentToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"granterMcUuid":"uuid-non-admin","mcUuid":"uuid-bob","username":"Bob"}""")
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `agent grant route grants a new user when granter is an admin`() = testApplication {
+        installTestApp()
+        userRepo.grant("uuid-admin", "AdminUser", isAdmin = true)
+        val response = createClient { install(ClientContentNegotiation) { json(ProtocolJson) } }
+            .post("/api/agent/grant") {
+                header(HttpHeaders.Authorization, "Bearer $agentToken")
+                contentType(ContentType.Application.Json)
+                setBody("""{"granterMcUuid":"uuid-admin","mcUuid":"uuid-bob","username":"Bob"}""")
+            }
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<GrantUserResponse>()
+        assertEquals("Bob", body.username)
+        assertEquals(false, body.isAdmin)
+    }
+
+    @Test
+    fun `agent grant route rejects duplicate grants with conflict`() = testApplication {
+        installTestApp()
+        userRepo.grant("uuid-admin", "AdminUser", isAdmin = true)
+        userRepo.grant("uuid-bob", "Bob", isAdmin = false)
+        val response = createClient {}.post("/api/agent/grant") {
+            header(HttpHeaders.Authorization, "Bearer $agentToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"granterMcUuid":"uuid-admin","mcUuid":"uuid-bob","username":"Bob"}""")
+        }
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
     fun `login with wrong password returns 401`() = testApplication {
         installTestApp()
         val user = userRepo.grant("uuid-1", "Alice", isAdmin = false)
