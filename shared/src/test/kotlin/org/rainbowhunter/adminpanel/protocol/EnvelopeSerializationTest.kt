@@ -76,6 +76,8 @@ class EnvelopeSerializationTest {
             ),
             AgentEnvelope.PlayerJoin(Player("uuid-1", "Player1")),
             AgentEnvelope.PlayerQuit(Player("uuid-1", "Player1")),
+            AgentEnvelope.ServerSwitch(Player("uuid-1", "Player1"), fromServer = "lobby", toServer = "survival"),
+            AgentEnvelope.ServerSwitch(Player("uuid-2", "Player2"), fromServer = null, toServer = "lobby"),
             AgentEnvelope.CommandResult(
                 correlationId = "c-1",
                 success = true,
@@ -96,6 +98,7 @@ class EnvelopeSerializationTest {
             CoreEnvelope.OpPlayer("c-4", "uuid-1", true),
             CoreEnvelope.SetGamemode("c-5", "uuid-1", Gamemode.CREATIVE),
             CoreEnvelope.Teleport("c-6", "uuid-1", "world", 0.0, 64.0, 0.0),
+            CoreEnvelope.BroadcastMessage("c-7", "Server maintenance in 5 minutes"),
         )
     }
 }

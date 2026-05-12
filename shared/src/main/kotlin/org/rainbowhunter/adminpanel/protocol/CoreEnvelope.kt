@@ -60,4 +60,11 @@ sealed class CoreEnvelope {
         val y: Double,
         val z: Double,
     ) : CoreEnvelope()
+
+    @Serializable
+    @SerialName("BroadcastMessage")
+    data class BroadcastMessage(
+        val correlationId: String,
+        val message: String,
+    ) : CoreEnvelope()
 }

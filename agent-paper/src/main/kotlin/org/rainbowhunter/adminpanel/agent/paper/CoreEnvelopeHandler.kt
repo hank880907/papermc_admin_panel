@@ -40,6 +40,10 @@ class CoreEnvelopeHandler(private val main: MainThreadRunner) {
             val world = Bukkit.getWorld(envelope.world) ?: error("unknown world: ${envelope.world}")
             target.teleport(org.bukkit.Location(world, envelope.x, envelope.y, envelope.z))
         }
+        is CoreEnvelope.BroadcastMessage -> result(envelope.correlationId) {
+            @Suppress("DEPRECATION")
+            Bukkit.broadcastMessage(envelope.message)
+        }
     }
 
     private fun runCommand(env: CoreEnvelope.RunCommand): AgentEnvelope.CommandResult = try {

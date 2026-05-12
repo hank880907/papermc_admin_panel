@@ -1,4 +1,4 @@
-package org.rainbowhunter.adminpanel.agent.paper
+package org.rainbowhunter.adminpanel.agent.common
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocket
@@ -22,6 +22,7 @@ import org.slf4j.Logger
 
 class AgentClient(
     private val config: AgentConfig,
+    private val agentType: AgentType,
     private val httpClient: HttpClient,
     private val handle: suspend (CoreEnvelope, AgentClient) -> Unit,
     private val logger: Logger,
@@ -72,7 +73,7 @@ class AgentClient(
             logger.info("agent: connected to ${config.coreUrl}")
 
             send(Frame.Text(json.encodeToString<AgentEnvelope>(
-                AgentEnvelope.Hello(config.serverId, AgentType.PAPER, config.displayName)
+                AgentEnvelope.Hello(config.serverId, agentType, config.displayName)
             )))
 
             val writer = scope.launch {

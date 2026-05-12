@@ -42,6 +42,7 @@ import java.util.UUID
 @Serializable data class OpRequest(val op: Boolean)
 @Serializable data class GamemodeRequest(val gamemode: Gamemode)
 @Serializable data class TeleportRequest(val world: String, val x: Double, val y: Double, val z: Double)
+@Serializable data class BroadcastRequest(val message: String)
 
 fun Route.serversRoutes(
     registry: AgentRegistry,
@@ -81,6 +82,30 @@ fun Route.serversRoutes(
                 return@get
             }
             call.respond(players)
+        }
+
+        post("/api/servers/{id}/broadcast") {
+            val serverId = call.parameters["id"]
+                ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("missing server id"))
+            val req = call.receive<BroadcastRequest>()
+            if (req.message.isBlank()) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("message must not be blank"))
+                return@post
+            }
+            val principal = call.principal<UserPrincipal>()!!
+            if (!registry.isOnline(serverId)) {
+                call.respond(HttpStatusCode.ServiceUnavailable, ErrorResponse("agent offline"))
+                return@post
+            }
+            val cid = newCorrelationId()
+            val result = try {
+                registry.dispatch(serverId, CoreEnvelope.BroadcastMessage(cid, req.message), cid, dispatchTimeout)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.GatewayTimeout, ErrorResponse(e.message ?: "dispatch failed"))
+                return@post
+            }
+            auditLog.write(principal.user.id, "server.broadcast", "server:$serverId", null)
+            call.respond(result)
         }
 
         route("/api/servers/{id}/players/{uuid}") {

@@ -38,6 +38,14 @@ sealed class AgentEnvelope {
     ) : AgentEnvelope()
 
     @Serializable
+    @SerialName("ServerSwitch")
+    data class ServerSwitch(
+        val player: Player,
+        val fromServer: String?,
+        val toServer: String,
+    ) : AgentEnvelope()
+
+    @Serializable
     @SerialName("CommandResult")
     data class CommandResult(
         val correlationId: String,

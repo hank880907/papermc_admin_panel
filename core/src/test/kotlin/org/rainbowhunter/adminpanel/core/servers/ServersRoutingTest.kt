@@ -254,4 +254,77 @@ class ServersRoutingTest {
         assertNotNull(auditAction, "expected an audit_log row with action=player.kick")
         assertEquals("server:srv-1/player:uuid-victim", auditAction!![AuditLogTable.target])
     }
+
+    @Test
+    fun `POST broadcast dispatches BroadcastMessage to agent and writes an audit row`() = testApplication {
+        installTestApp()
+        val browser = browserClient()
+        loginAsAdmin(browser)
+        val agent = agentClient()
+        var receivedBroadcast: CoreEnvelope.BroadcastMessage? = null
+        coroutineScope {
+            val agentJob = launch {
+                agent.webSocket("/agent", request = { header(HttpHeaders.Authorization, "Bearer $agentToken") }) {
+                    send(ProtocolJson.encodeToString<AgentEnvelope>(
+                        AgentEnvelope.Hello("srv-1", AgentType.VELOCITY, "Proxy"),
+                    ))
+                    for (frame in incoming) {
+                        if (frame !is Frame.Text) continue
+                        val env = ProtocolJson.decodeFromString<CoreEnvelope>(frame.readText())
+                        if (env is CoreEnvelope.BroadcastMessage) {
+                            receivedBroadcast = env
+                            send(ProtocolJson.encodeToString<AgentEnvelope>(
+                                AgentEnvelope.CommandResult(env.correlationId, true, ""),
+                            ))
+                            break
+                        }
+                    }
+                }
+            }
+            withTimeout(2000) { while (!registry.isOnline("srv-1")) delay(20) }
+            val auditBefore = auditLog.count()
+            val resp = browser.post("/api/servers/srv-1/broadcast") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"message":"Maintenance in 5 minutes"}""")
+            }
+            assertEquals(HttpStatusCode.OK, resp.status)
+            val auditAfter = auditLog.count()
+            assertTrue(auditAfter > auditBefore, "audit log should gain at least one row")
+            val broadcast = receivedBroadcast
+            assertNotNull(broadcast, "mock agent should have received a BroadcastMessage")
+            assertEquals("Maintenance in 5 minutes", broadcast!!.message)
+            agentJob.cancelAndJoin()
+        }
+        val auditAction = transaction {
+            AuditLogTable.selectAll()
+                .where { AuditLogTable.action eq "server.broadcast" }
+                .singleOrNull()
+        }
+        assertNotNull(auditAction, "expected an audit_log row with action=server.broadcast")
+        assertEquals("server:srv-1", auditAction!![AuditLogTable.target])
+    }
+
+    @Test
+    fun `POST broadcast with blank message returns 400`() = testApplication {
+        installTestApp()
+        val browser = browserClient()
+        loginAsAdmin(browser)
+        val resp = browser.post("/api/servers/srv-1/broadcast") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"message":"   "}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, resp.status)
+    }
+
+    @Test
+    fun `POST broadcast when agent is offline returns 503`() = testApplication {
+        installTestApp()
+        val browser = browserClient()
+        loginAsAdmin(browser)
+        val resp = browser.post("/api/servers/srv-unknown/broadcast") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"message":"hello"}""")
+        }
+        assertEquals(HttpStatusCode.ServiceUnavailable, resp.status)
+    }
 }

@@ -1,4 +1,4 @@
-package org.rainbowhunter.adminpanel.agent.paper
+package org.rainbowhunter.adminpanel.agent.common
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.Filter

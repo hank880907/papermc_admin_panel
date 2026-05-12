@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 include(
     "shared",
     "core",
+    "agent-common",
     "agent-paper",
     "agent-velocity",
 )

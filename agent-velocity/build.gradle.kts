@@ -5,14 +5,14 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.paper.api)
+    compileOnly(libs.velocity.api)
     compileOnly(libs.log4j.api)
     compileOnly(libs.log4j.core)
 
     implementation(project(":agent-common"))
     implementation(libs.ktor.client.cio)
 
-    testImplementation(libs.paper.api)
+    testImplementation(libs.velocity.api)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit.jupiter.params)
     testRuntimeOnly(libs.junit.platform.launcher)

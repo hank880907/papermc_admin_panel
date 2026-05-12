@@ -4,6 +4,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.rainbowhunter.adminpanel.agent.common.AgentClient
 import org.rainbowhunter.adminpanel.protocol.AgentEnvelope
 import org.rainbowhunter.adminpanel.protocol.Player as PlayerDto
 

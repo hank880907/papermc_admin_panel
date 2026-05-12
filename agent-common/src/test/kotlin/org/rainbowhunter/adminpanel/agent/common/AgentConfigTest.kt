@@ -1,4 +1,4 @@
-package org.rainbowhunter.adminpanel.agent.paper
+package org.rainbowhunter.adminpanel.agent.common
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -9,7 +9,7 @@ import java.time.Duration
 class AgentConfigTest {
 
     @Test
-    fun `happy path — full YAML resolves all fields`() {
+    fun `happy path full YAML resolves all fields`() {
         val yaml = """
             core:
               url: 'https://core.example.com/'

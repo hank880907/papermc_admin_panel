@@ -253,11 +253,14 @@ Re-evaluate MockBukkit coverage if a compatible release surfaces or if Phase 5 r
 
 ### Steps
 
-- [ ] Scaffold `agent-velocity/` against Velocity API; Kotlin sources, Java 25 toolchain
-- [ ] Same WebSocket client + config pattern as Paper agent (extract shared client into a small `agent-common`
-  sub-package if pragmatic)
-- [ ] Proxy-level events: player connect/disconnect, server switch
-- [ ] Proxy-level ops: kick from proxy, broadcast message
+- [x] Scaffold `agent-velocity/` against Velocity API; Kotlin sources, Java 25 toolchain
+- [x] Same WebSocket client + config pattern as Paper agent — `agent-common` module extracted; both agents depend on it
+  (`AgentConfig`, `ReconnectBackoff`, `AgentClient` parameterized by `AgentType`, `ConsoleStreamer`)
+- [x] Proxy-level events: player connect/disconnect, server switch (new `AgentEnvelope.ServerSwitch`)
+- [x] Proxy-level ops: kick from proxy (reuses `CoreEnvelope.KickPlayer`), broadcast message
+  (new `CoreEnvelope.BroadcastMessage`; also implemented on Paper agent for parity)
+- [x] Core broadcast route — `POST /api/servers/{id}/broadcast` (session-authed) dispatches
+  `CoreEnvelope.BroadcastMessage` and writes `server.broadcast` to `audit_log`
 
 ### Success criteria
 
@@ -268,9 +271,20 @@ Re-evaluate MockBukkit coverage if a compatible release surfaces or if Phase 5 r
 
 ### Tests
 
-- Unit: shared client code reused from `agent-paper` — tests run from `agent-common` if extracted
-- Integration: with a stub Core, simulate a player connect event on the Velocity event bus → assert event reaches Core
-- Manual: real Velocity proxy with the agent; kick a connected player from the web UI; verify they disconnect
+- [x] Unit: shared client code reused from `agent-paper` — tests for `AgentConfig` and `ReconnectBackoff` run from
+  `agent-common`
+- [x] Unit: round-trip serialization for `ServerSwitch` and `BroadcastMessage` (extended in `EnvelopeSerializationTest`)
+- [x] Unit: Velocity `CoreEnvelopeHandler` reports unsupported ops with the original correlation id
+- [x] Integration (Core): `POST /api/servers/{id}/broadcast` dispatches `BroadcastMessage`, writes
+  `server.broadcast` audit row; rejects blank message with 400; returns 503 when agent offline
+- [ ] Integration: with a stub Core, simulate a player connect event on the Velocity event bus → assert event reaches Core
+- [ ] Manual: real Velocity proxy with the agent; from the web UI, (a) kick a connected player and verify they
+  disconnect, (b) trigger a broadcast and verify the message appears in every connected player's chat
+
+**Phase 6 approval gate.** The integration test above is **intentionally deferred** — `ProxyServer` / `Player` are large
+Velocity-runtime interfaces, and hand-rolled or reflection-proxy stubs verify wiring without proving real classloader
+behavior or event dispatch. The **manual Velocity smoke** above is the gate for treating Phase 6 as shippable. The
+unsupported-op unit test plus serialization round-trips cover the parts that don't need a live proxy.
 
 ---
 

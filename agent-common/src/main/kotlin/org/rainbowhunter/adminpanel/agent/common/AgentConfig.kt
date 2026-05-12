@@ -1,4 +1,4 @@
-package org.rainbowhunter.adminpanel.agent.paper
+package org.rainbowhunter.adminpanel.agent.common
 
 import org.yaml.snakeyaml.Yaml
 import java.io.Reader

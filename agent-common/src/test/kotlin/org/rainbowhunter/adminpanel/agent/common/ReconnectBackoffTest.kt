@@ -1,4 +1,4 @@
-package org.rainbowhunter.adminpanel.agent.paper
+package org.rainbowhunter.adminpanel.agent.common
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

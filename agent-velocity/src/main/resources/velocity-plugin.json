@@ -1,0 +1,7 @@
+{
+  "id": "adminpanel",
+  "name": "Admin Panel",
+  "version": "0.1.0",
+  "description": "Admin Panel agent for Velocity",
+  "main": "org.rainbowhunter.adminpanel.agent.velocity.AdminPanelAgent"
+}

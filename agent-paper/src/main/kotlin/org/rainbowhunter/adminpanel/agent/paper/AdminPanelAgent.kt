@@ -10,7 +10,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.bukkit.plugin.java.JavaPlugin
+import org.rainbowhunter.adminpanel.agent.common.AgentClient
+import org.rainbowhunter.adminpanel.agent.common.AgentConfig
+import org.rainbowhunter.adminpanel.agent.common.ConsoleStreamer
 import org.rainbowhunter.adminpanel.protocol.AgentEnvelope
+import org.rainbowhunter.adminpanel.protocol.AgentType
 import org.rainbowhunter.adminpanel.protocol.ProtocolJson
 
 class AdminPanelAgent : JavaPlugin() {
@@ -43,6 +47,7 @@ class AdminPanelAgent : JavaPlugin() {
 
         val agentClient = AgentClient(
             config = agentConfig,
+            agentType = AgentType.PAPER,
             httpClient = client,
             handle = { envelope, ac ->
                 val reply = handler.handle(envelope)
