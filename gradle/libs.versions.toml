@@ -5,7 +5,7 @@ kotlinxCoroutines = "1.10.1"
 ktor = "3.1.2"
 exposed = "0.58.0"
 hikariCp = "6.2.1"
-flyway = "11.3.2"
+flyway = "12.6.0"
 sqliteJdbc = "3.49.0.0"
 argon2 = "2.11"
 logback = "1.5.16"
@@ -13,6 +13,7 @@ paperApi = "26.1.2-R0.1-SNAPSHOT"
 velocityApi = "3.4.0-SNAPSHOT"
 junitJupiter = "5.11.4"
 junitPlatform = "1.11.4"
+shadow = "8.3.5"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
@@ -37,6 +38,7 @@ exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", versio
 
 hikariCp = { module = "com.zaxxer:HikariCP", version.ref = "hikariCp" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-database-sqlite = { module = "org.flywaydb:flyway-database-nc-sqlite", version.ref = "flyway" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 argon2-jvm = { module = "de.mkammerer:argon2-jvm", version.ref = "argon2" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
@@ -51,3 +53,4 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }

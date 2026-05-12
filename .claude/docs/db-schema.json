@@ -1,0 +1,81 @@
+{
+  "schema": "admin-panel",
+  "version": "v1",
+  "source_of_truth": "core/src/main/resources/db/migration/V1__init.sql",
+  "conventions": {
+    "naming": "snake_case; tables plural; columns singular",
+    "ids": "INTEGER PRIMARY KEY (no AUTOINCREMENT — portable; SQLite auto-assigns rowids, MySQL needs a vendor-specific migration to add AUTO_INCREMENT later)",
+    "timestamps": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP, treated as UTC",
+    "booleans": "BOOLEAN NOT NULL DEFAULT 0 (SQLite stores as INTEGER, MySQL as TINYINT)",
+    "foreign_keys": "explicit FOREIGN KEY (...) REFERENCES ...; no ON DELETE clauses in v1",
+    "sql_dialect": "DB-agnostic — no vendor-specific syntax in committed migrations"
+  },
+  "tables": [
+    {
+      "name": "users",
+      "purpose": "Application users with web-panel access. One row per MC player granted access.",
+      "columns": [
+        { "name": "id",            "type": "INTEGER",      "nullable": false, "primary_key": true },
+        { "name": "mc_uuid",       "type": "VARCHAR(36)",  "nullable": false, "unique": true,
+          "comment": "Minecraft player UUID — canonical identifier" },
+        { "name": "username",      "type": "VARCHAR(64)",  "nullable": false,
+          "comment": "MC username at registration time; not unique (MC name swaps between accounts are possible)" },
+        { "name": "password_hash", "type": "VARCHAR(256)", "nullable": true,
+          "comment": "Argon2id; null until the registration flow completes" },
+        { "name": "is_admin",      "type": "BOOLEAN",      "nullable": false, "default": 0,
+          "comment": "v1: everyone with access is admin; column reserved for future role hierarchy" },
+        { "name": "created_at",    "type": "TIMESTAMP",    "nullable": false, "default": "CURRENT_TIMESTAMP" }
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "agents",
+      "purpose": "Registered Paper/Velocity instances. One row per server_id; written on first Hello.",
+      "columns": [
+        { "name": "id",            "type": "INTEGER",       "nullable": false, "primary_key": true },
+        { "name": "server_id",     "type": "VARCHAR(128)",  "nullable": false, "unique": true,
+          "comment": "Stable identifier supplied by the agent in Hello" },
+        { "name": "agent_type",    "type": "VARCHAR(16)",   "nullable": false,
+          "comment": "Enum-by-convention: 'paper' | 'velocity' (not enforced by CHECK to stay DB-agnostic)" },
+        { "name": "display_name",  "type": "VARCHAR(128)",  "nullable": false },
+        { "name": "last_seen_at",  "type": "TIMESTAMP",     "nullable": true,
+          "comment": "Updated on each heartbeat; null until the first Hello" }
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "registration_tokens",
+      "purpose": "One-time URLs minted by /ap register. Consumed when the user sets a password.",
+      "columns": [
+        { "name": "token",         "type": "VARCHAR(128)", "nullable": false, "primary_key": true,
+          "comment": "Opaque random string; the URL slug" },
+        { "name": "user_id",       "type": "INTEGER",      "nullable": false },
+        { "name": "expires_at",    "type": "TIMESTAMP",    "nullable": false },
+        { "name": "consumed_at",   "type": "TIMESTAMP",    "nullable": true,
+          "comment": "Non-null once the registration completes; reject reuse" }
+      ],
+      "foreign_keys": [
+        { "columns": ["user_id"], "references": { "table": "users", "columns": ["id"] } }
+      ]
+    },
+    {
+      "name": "audit_log",
+      "purpose": "Append-only record of mutations. One row per mutating action.",
+      "columns": [
+        { "name": "id",            "type": "INTEGER",       "nullable": false, "primary_key": true },
+        { "name": "user_id",       "type": "INTEGER",       "nullable": true,
+          "comment": "Null for system-originated actions (e.g. bootstrap)" },
+        { "name": "action",        "type": "VARCHAR(64)",   "nullable": false,
+          "comment": "Stable dotted code, e.g. 'player.kick', 'user.grant'" },
+        { "name": "target",        "type": "VARCHAR(256)",  "nullable": true,
+          "comment": "Free-form target identifier, e.g. 'uuid:abc-123' or 'server:survival-1'" },
+        { "name": "payload_json",  "type": "TEXT",          "nullable": true,
+          "comment": "JSON-encoded extra context; schema is per-action" },
+        { "name": "at",            "type": "TIMESTAMP",     "nullable": false, "default": "CURRENT_TIMESTAMP" }
+      ],
+      "foreign_keys": [
+        { "columns": ["user_id"], "references": { "table": "users", "columns": ["id"] } }
+      ]
+    }
+  ]
+}

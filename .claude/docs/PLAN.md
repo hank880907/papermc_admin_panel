@@ -96,17 +96,17 @@ charts, world ops, chat moderation, audit log UI, MySQL, password reset flow.
 
 ### Steps
 
-- [ ] Scaffold `core/` Ktor application with Logback
-- [ ] Wire Exposed + HikariCP + SQLite JDBC
-- [ ] Add Flyway; write `V1__init.sql`:
+- [x] Scaffold `core/` Ktor application with Logback
+- [x] Wire Exposed + HikariCP + SQLite JDBC
+- [x] Add Flyway; write `V1__init.sql`:
     - `users` — id, mc_uuid (unique), username, password_hash (nullable until registered), is_admin, created_at
     - `agents` — id, agent_type (paper|velocity), display_name, last_seen_at
     - `registration_tokens` — token, user_id, expires_at, consumed_at
     - `audit_log` — id, user_id, action, target, payload_json, at
-- [ ] `application.conf` — HTTP port, DB path, agent registration policy
-- [ ] `GET /api/health` healthcheck
-- [ ] Static resource serving at `/` from `resources/web/` (empty for now)
-- [ ] Multi-stage `Dockerfile` (eclipse-temurin:25-jre, copies fat JAR)
+- [x] `application.conf` — HTTP port, DB path, agent registration policy
+- [x] `GET /api/health` healthcheck
+- [x] Static resource serving at `/` from `resources/web/` (empty for now)
+- [x] Multi-stage `Dockerfile` (eclipse-temurin:25-jre, copies fat JAR)
 
 ### Success criteria
 
