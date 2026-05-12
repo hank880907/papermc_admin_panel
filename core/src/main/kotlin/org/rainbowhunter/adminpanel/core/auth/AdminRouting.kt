@@ -6,6 +6,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
@@ -23,6 +24,13 @@ import org.rainbowhunter.adminpanel.core.audit.AuditLogRepository
     val mcUuid: String,
     val username: String,
 )
+@Serializable data class UserListItem(
+    val id: Int,
+    val mcUuid: String,
+    val username: String,
+    val isAdmin: Boolean,
+    val createdAt: Long,
+)
 
 fun Route.adminRoutes(
     userRepo: UserRepository,
@@ -30,6 +38,17 @@ fun Route.adminRoutes(
 ) {
     authenticate(SESSION_AUTH_NAME) {
         route("/api/users") {
+            get {
+                val principal = call.principal<UserPrincipal>()!!
+                if (!principal.user.isAdmin) {
+                    call.respond(HttpStatusCode.Forbidden, ErrorResponse("admin required"))
+                    return@get
+                }
+                val users = userRepo.listAll().map {
+                    UserListItem(it.id, it.mcUuid, it.username, it.isAdmin, it.createdAt.toEpochMilli())
+                }
+                call.respond(users)
+            }
             post {
                 val principal = call.principal<UserPrincipal>()!!
                 if (!principal.user.isAdmin) {

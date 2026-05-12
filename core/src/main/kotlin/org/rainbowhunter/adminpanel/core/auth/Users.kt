@@ -27,6 +27,7 @@ data class UserRecord(
     val username: String,
     val passwordHash: String?,
     val isAdmin: Boolean,
+    val createdAt: Instant,
 )
 
 class UserRepository(
@@ -65,11 +66,18 @@ class UserRepository(
 
     fun countAll(): Long = transaction { UsersTable.selectAll().count() }
 
+    fun listAll(): List<UserRecord> = transaction {
+        UsersTable.selectAll()
+            .orderBy(UsersTable.createdAt)
+            .map { it.toUserRecord() }
+    }
+
     private fun ResultRow.toUserRecord() = UserRecord(
         id = this[UsersTable.id],
         mcUuid = this[UsersTable.mcUuid],
         username = this[UsersTable.username],
         passwordHash = this[UsersTable.passwordHash],
         isAdmin = this[UsersTable.isAdmin],
+        createdAt = this[UsersTable.createdAt],
     )
 }

@@ -261,4 +261,45 @@ class AuthRoutingTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
+
+    @Test
+    fun `GET api users without session returns 401`() = testApplication {
+        installTestApp()
+        val response = createClient {}.get("/api/users")
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `GET api users as non-admin returns 403`() = testApplication {
+        installTestApp()
+        val user = userRepo.grant("uuid-1", "Alice", isAdmin = false)
+        userRepo.setPasswordHash(user.id, argon2.hash("alicepass"))
+        val client = testClient()
+        client.post("/api/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(LoginRequest("Alice", "alicepass"))
+        }.also { assertEquals(HttpStatusCode.OK, it.status) }
+        val response = client.get("/api/users")
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `GET api users as admin returns all granted users in creation order`() = testApplication {
+        installTestApp()
+        val admin = userRepo.grant("uuid-admin", "Admin", isAdmin = true)
+        userRepo.setPasswordHash(admin.id, argon2.hash("adminpass"))
+        userRepo.grant("uuid-bob", "Bob", isAdmin = false)
+        userRepo.grant("uuid-carol", "Carol", isAdmin = false)
+        val client = testClient()
+        client.post("/api/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(LoginRequest("Admin", "adminpass"))
+        }.also { assertEquals(HttpStatusCode.OK, it.status) }
+        val response = client.get("/api/users")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val users = response.body<List<UserListItem>>()
+        assertEquals(listOf("Admin", "Bob", "Carol"), users.map { it.username })
+        assertTrue(users.first { it.username == "Admin" }.isAdmin)
+        assertTrue(!users.first { it.username == "Bob" }.isAdmin)
+    }
 }

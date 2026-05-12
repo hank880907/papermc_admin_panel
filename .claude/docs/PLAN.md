@@ -306,12 +306,20 @@ Phase 7 is staged because the SPA spans eight feature areas and each is a separa
 - [x] Vite dev proxy for `/api` and `/ws` → `localhost:8080`
 - [x] Vitest + Testing Library + jsdom configured; smoke test for `ApiError`
 
-**Stage 2 — Auth pages (next):**
-- [ ] `/register/:token` — validates token via API, displays username, password form, posts to register/complete
-- [ ] `/login` — username + password
-- [ ] First-run hint: if `GET /api/auth/status` reports zero users, login screen shows instructions to have an op run
-  `/ap register` in-game
-- [ ] Admin user-list page (read-only view of who has access; granting happens via `/ap grant` in-game)
+**Stage 2 — Auth pages:**
+- [x] `/register/$token` — validates token via API on load, displays username, password + confirm form, posts to
+  `/api/auth/register/complete`; expired/invalid token surfaces via the route's `errorComponent`
+- [x] `/login` — username + password, redirects back to `?redirect=` after success
+- [x] First-run hint: if `GET /api/auth/status` reports `userCount === 0`, login screen swaps the form for in-game
+  `/ap register` bootstrap instructions
+- [x] Admin user-list page at `/users` — read-only table, admin-only (route `beforeLoad` redirects non-admins),
+  backed by new `GET /api/users` Core endpoint
+- [x] Route layout split: `_app` pathless layout wraps authenticated pages with `AppShell` and a
+  redirect-to-login guard; `/login` and `/register/$token` are public; sidebar "Users" link is admin-only;
+  header gains a logout button
+- [x] Core: `UserRepository.listAll()`, `UserListItem` DTO, session-authed `GET /api/users`; tests cover 401 (no
+  session), 403 (non-admin), 200 with creation-ordered list (admin)
+- [x] Unit: `validatePassword` (length + match + ordering)
 
 **Stage 3 — Server registry dashboard:**
 - [ ] TanStack Query for list, WS subscription for status changes
